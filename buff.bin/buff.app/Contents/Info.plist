@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>buff</string>
+	<key>CFBundleGetInfoString</key>
+	<string>buff</string>
+	<key>CFBundleIconFile</key>
+	<string>buff.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.pico8_author.buff</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>buff</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>buff</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>buff</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.6</string>
+	<key>NSHighResolutionCapable</key>
+	<string>YES</string>
+	<key>NSSupportsAutomaticGraphicsSwitching</key>
+	<string>TRUE</string>
+</dict>
+</plist>
