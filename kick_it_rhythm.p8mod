@@ -1,96 +1,115 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
---variables
-note = stat(56)
-active = false
-window_end = 10
-window_start = 0
-latency = 10
-adj_latency = 0
-adjust_hits = 0
-player = {
-	x = 60,
-	y = 80,
-	speed = 0.3,
-	flipped = 4
-}
-punch_flip = false
-kick_flip = false
-facing_flip = false
-note_x = 0
-beat = 166
-synco = true
-anim_frame = 1
-x = 155
-z = 154
-once_punch = false
-once_kick = false
-rate = 24
-once_beat = false
-once_anim = true
-spawn = {
-{facing_flip = true,
-	x = 128,
-	y = 70,
-	speed = 0.15,
-	state = moving,
-	flipped = 8,
-	life = 3
-	},
-	{facing_flip = true,
-	x = 0,
-	y = 70,
-	speed = 0.15,
-	state = moving,
-	flipped = 8,
-	life = 3
-	},
-	{facing_flip = true,
-	x = 144,
-	y = 86,
-	speed = 0.15,
-	state = moving,
-	flipped = 8,
-	life = 3
-	},
-	{facing_flip = true,
-	x = -16,
-	y = 86,
-	speed = 0.15,
-	state = moving,
-	flipped = 8,
-	life = 3
+-- variables
+	note = stat(56)
+	active = false
+	adjust_hits = 0
+	player = {
+		x = 60,
+		y = 80,
+		speed = 0.3,
+		flipped = 4
 	}
-}
-reserved_right = false
-reserved_left = false
-right_queue = 0
-left_queue = 0
-last_beat = 0
-tick = 0
-once_tick = true
-sprites = {}
-sorted_sprites = {}
-whiff_left = true
-whiff_right = true
+	facing_flip = false
+	note_x = 0
+	beat = 166
+	synco = true
+	anim_frame = 1
+	x = 155
+	z = 154
+	rate = 24
+	once_anim = true
+	spawn = {
+		{facing_flip = true,
+		x = 128,
+		y = 70,
+		speed = 0.15,
+		state = "",
+		flipped = 8,
+		life = 3
+		},
+		{facing_flip = true,
+		x = 0,
+		y = 70,
+		speed = 0.15,
+		state = "",
+		flipped = 8,
+		life = 3
+		},
+		{facing_flip = true,
+		x = 144,
+		y = 86,
+		speed = 0.15,
+		state = "",
+		flipped = 8,
+		life = 3
+		},
+		{facing_flip = true,
+		x = -16,
+		y = 86,
+		speed = 0.15,
+		state = "",
+		flipped = 8,
+		life = 3
+		}
+	}
+	reserved_right = false
+	reserved_left = false
+	right_queue = 0
+	left_queue = 0
+	last_beat = 0
+	tick = 0
+	sprites = {}
+	sorted_sprites = {}
+	whiff_left = true
+	whiff_right = true
 
---functions
-function distance(x1, y1, x2, y2)
-	local dx = x1 - x2
-	local dy = y1 - y2
-	return flr(sqrt(dx*dx + dy*dy))
-end
+-- functions
+	function distance(x1, y1, x2, y2)
+		local dx = x1 - x2
+		local dy = y1 - y2
+		return flr(sqrt(dx*dx + dy*dy))
+	end
 
+-- loops
 function _init()
 	music()
 	pal({[0]=0,5,8,7,128,132,4,143,129,1,140,6,131,3,139,15},1)
 	poke(0x5f5f,0x3f)
-	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,14,14,136,12},2)
+	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,14,14,14,12},2)
+	memset(0x5f72,0b11100000,1)
+	memset(0x5f77,0b10000000,1)
+	memset(0x5f7f,0b00001111,1)
 end
 
 function _update60()
+-- [[dynamic gradient
+	chunk = flr(player.y/8)
+	if chunk >= 11 then
+	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,14,133,133,12},2)
+	elseif chunk >= 10 then
+	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,133,133,133,12},2)
+	elseif chunk >= 9 then
+	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,133,133,133,14,12},2)
+	elseif chunk >= 8 then
+	pal({[0]=136,133,133,12,12,136,134,134,14,14,133,133,133,14,14,12},2)
+	end
+	palette = "0x5f7" .. sub(tostr(flr((player.y+16)/8)*255,true),4,4)
+	bin = ""
+	for i=1, 7 do
+		if flr(player.y%8) >= i-0.1 then
+			bin = "0" .. bin
+		else
+			bin = "1" .. bin
+		end
+	end
+	bin = "0b" .. bin .. "0"
+	memset(palette,tonum(bin),1)--]]
+-- [[clock
 	tick += 1
+	note = stat(56)--]]
+-- [[goblin counter
 	if #spawn < 4 then
 		redcap = {}
 		if tick%2 == 0 then
@@ -98,7 +117,7 @@ function _update60()
 		x = -16,
 		y = 86,
 		speed = 0.15,
-		state = moving,
+		state = "",
 		flipped = 8,
 		life = 3
 		}
@@ -107,24 +126,40 @@ function _update60()
 		x = 128,
 		y = 86,
 		speed = 0.15,
-		state = moving,
+		state = "",
 		flipped = 8,
 		life = 3
 		}
 		end
 		add(spawn,redcap)
-	end
-	note = stat(56)
-	-- movement normalization
+	end--]]
+-- [[movement normalization
 	norm = 1
 	if (btn(⬆️) or btn(⬇️)) and (btn(⬅️) or btn(➡️)) then
 		norm = 1
 	else
 		norm = 1.4
-	end
-
--- clover states
+	end--]]
+-- [[clover states
 	clover_idle = {
+		{
+			sprite = 152, --hand shadow
+			x = player.x,
+			spr_x = player.flipped*3/4,
+			y = player.y,
+			spr_y = 2,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 152,
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 3,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
 		{
 			sprite = 150, --body shadow
 			x = player.x,
@@ -162,27 +197,9 @@ function _update60()
 			spr_flip_v = false
 		},
 		{
-			sprite = 152, --hand shadow
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 2,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 152,
-			x = player.x,
-			spr_x = -player.flipped,
-			y = player.y,
-			spr_y = 3,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
 			sprite = 133, --hand
 			x = player.x,
-			spr_x = player.flipped,
+			spr_x = player.flipped*3/4,
 			y = player.y,
 			spr_y = 2,
 			facing = facing_flip,
@@ -211,7 +228,7 @@ function _update60()
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -220,7 +237,7 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
 			facing = facing_flip,
 			spr_flip_v = false
 		}
@@ -229,65 +246,65 @@ function _update60()
 	clover_walk = {}
 		add(clover_walk,{
 			{
-				sprite = 150, --body shadow
-				x = player.x,
-				spr_x = -player.flipped,
-				y = player.y,
-				spr_y = 4,
-				facing = not facing_flip,
-				spr_flip_v = true
-			},
-			{
-				sprite = 150,
-				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = 4,
-				facing = facing_flip,
-				spr_flip_v = true
-			},
-			{
-				sprite = 150,
-				x = player.x,
-				spr_x = -player.flipped,
-				y = player.y,
-				spr_y = -4,
-				facing = not facing_flip,
-				spr_flip_v = false
-			},
-			{
-				sprite = 150,
-				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = -4,
-				facing = facing_flip,
-				spr_flip_v = false
-			},
-			{
 				sprite = 152, --hand shadow
 				x = player.x,
-				spr_x = player.flipped,
+				spr_x = 0,
 				y = player.y,
-				spr_y = 2,
+				spr_y = 5,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
 			{
 				sprite = 152,
 				x = player.x,
-				spr_x = -player.flipped,
+				spr_x = -player.flipped/2,
 				y = player.y,
 				spr_y = 3,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
 			{
-				sprite = 133, --hand
+				sprite = 150, --body shadow
+				x = player.x,
+				spr_x = -player.flipped,
+				y = player.y,
+				spr_y = 5,
+				facing = not facing_flip,
+				spr_flip_v = true
+			},
+			{
+				sprite = 150,
 				x = player.x,
 				spr_x = player.flipped,
 				y = player.y,
-				spr_y = 2,
+				spr_y = 5,
+				facing = facing_flip,
+				spr_flip_v = true
+			},
+			{
+				sprite = 150,
+				x = player.x,
+				spr_x = -player.flipped,
+				y = player.y,
+				spr_y = -3,
+				facing = not facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 150,
+				x = player.x,
+				spr_x = player.flipped,
+				y = player.y,
+				spr_y = -3,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 133, --hand
+				x = player.x,
+				spr_x = -player.flipped/2,
+				y = player.y,
+				spr_y = 3,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -296,16 +313,16 @@ function _update60()
 				x = player.x,
 				spr_x = 0,
 				y = player.y,
-				spr_y = 0,
+				spr_y = 1,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
 			{
 				sprite = 133, --hand
 				x = player.x,
-				spr_x = -player.flipped,
+				spr_x = 0,
 				y = player.y,
-				spr_y = 3,
+				spr_y = 5,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -314,7 +331,7 @@ function _update60()
 				x = player.x,
 				spr_x = player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -323,12 +340,30 @@ function _update60()
 				x = player.x,
 				spr_x = -player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			}
 		})
 		add(clover_walk,{
+			{
+				sprite = 152, --hand shadow
+				x = player.x,
+				spr_x = player.flipped*3/4,
+				y = player.y,
+				spr_y = 2,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 152,
+				x = player.x,
+				spr_x = -player.flipped,
+				y = player.y,
+				spr_y = 3,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
 			{
 				sprite = 150, --body shadow
 				x = player.x,
@@ -366,27 +401,9 @@ function _update60()
 				spr_flip_v = false
 			},
 			{
-				sprite = 152, --hand shadow
-				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = 2,
-				facing = facing_flip,
-				spr_flip_v = false
-			},
-			{
-				sprite = 152,
-				x = player.x,
-				spr_x = -player.flipped,
-				y = player.y,
-				spr_y = 3,
-				facing = facing_flip,
-				spr_flip_v = false
-			},
-			{
 				sprite = 133, --hand
 				x = player.x,
-				spr_x = player.flipped,
+				spr_x = player.flipped*3/4,
 				y = player.y,
 				spr_y = 2,
 				facing = facing_flip,
@@ -415,7 +432,7 @@ function _update60()
 				x = player.x,
 				spr_x = player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -424,72 +441,72 @@ function _update60()
 				x = player.x,
 				spr_x = -player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			}
 		})
 		add(clover_walk,{
 			{
-				sprite = 150, --body shadow
+				sprite = 151, --hand shadow
 				x = player.x,
-				spr_x = -player.flipped,
+				spr_x = player.flipped*3/2,
 				y = player.y,
-				spr_y = 4,
-				facing = not facing_flip,
-				spr_flip_v = true
-			},
-			{
-				sprite = 150,
-				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = 4,
-				facing = facing_flip,
-				spr_flip_v = true
-			},
-			{
-				sprite = 150,
-				x = player.x,
-				spr_x = -player.flipped,
-				y = player.y,
-				spr_y = -4,
-				facing = not facing_flip,
-				spr_flip_v = false
-			},
-			{
-				sprite = 150,
-				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = -4,
+				spr_y = -1,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
 			{
-				sprite = 152, --hand shadow
+				sprite = 153,
 				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = 2,
-				facing = facing_flip,
-				spr_flip_v = false
-			},
-			{
-				sprite = 152,
-				x = player.x,
-				spr_x = -player.flipped,
+				spr_x = -player.flipped*3/2,
 				y = player.y,
 				spr_y = 3,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
 			{
-				sprite = 133, --hand
+				sprite = 150, --body shadow
+				x = player.x,
+				spr_x = -player.flipped,
+				y = player.y,
+				spr_y = 2,
+				facing = not facing_flip,
+				spr_flip_v = true
+			},
+			{
+				sprite = 150,
 				x = player.x,
 				spr_x = player.flipped,
 				y = player.y,
 				spr_y = 2,
+				facing = facing_flip,
+				spr_flip_v = true
+			},
+			{
+				sprite = 150,
+				x = player.x,
+				spr_x = -player.flipped,
+				y = player.y,
+				spr_y = -6,
+				facing = not facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 150,
+				x = player.x,
+				spr_x = player.flipped,
+				y = player.y,
+				spr_y = -6,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 132, --hand
+				x = player.x,
+				spr_x = player.flipped*3/2,
+				y = player.y,
+				spr_y = -1,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -498,14 +515,14 @@ function _update60()
 				x = player.x,
 				spr_x = 0,
 				y = player.y,
-				spr_y = 0,
+				spr_y = -2,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
 			{
-				sprite = 133, --hand
+				sprite = 134, --hand
 				x = player.x,
-				spr_x = -player.flipped,
+				spr_x = -player.flipped*3/2,
 				y = player.y,
 				spr_y = 3,
 				facing = facing_flip,
@@ -516,7 +533,16 @@ function _update60()
 				x = player.x,
 				spr_x = player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 146,
+				x = player.x,
+				spr_x = player.flipped,
+				y = player.y,
+				spr_y = 3,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -525,12 +551,30 @@ function _update60()
 				x = player.x,
 				spr_x = -player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			}
 		})
 		add(clover_walk,{
+			{
+				sprite = 152, --hand shadow
+				x = player.x,
+				spr_x = player.flipped*3/4,
+				y = player.y,
+				spr_y = 2,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 152,
+				x = player.x,
+				spr_x = -player.flipped,
+				y = player.y,
+				spr_y = 3,
+				facing = facing_flip,
+				spr_flip_v = false
+			},
 			{
 				sprite = 150, --body shadow
 				x = player.x,
@@ -568,27 +612,9 @@ function _update60()
 				spr_flip_v = false
 			},
 			{
-				sprite = 152, --hand shadow
-				x = player.x,
-				spr_x = player.flipped,
-				y = player.y,
-				spr_y = 2,
-				facing = facing_flip,
-				spr_flip_v = false
-			},
-			{
-				sprite = 152,
-				x = player.x,
-				spr_x = -player.flipped,
-				y = player.y,
-				spr_y = 3,
-				facing = facing_flip,
-				spr_flip_v = false
-			},
-			{
 				sprite = 133, --hand
 				x = player.x,
-				spr_x = player.flipped,
+				spr_x = player.flipped*3/4,
 				y = player.y,
 				spr_y = 2,
 				facing = facing_flip,
@@ -617,7 +643,7 @@ function _update60()
 				x = player.x,
 				spr_x = player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			},
@@ -626,7 +652,7 @@ function _update60()
 				x = player.x,
 				spr_x = -player.flipped,
 				y = player.y,
-				spr_y = 10,
+				spr_y = 11,
 				facing = facing_flip,
 				spr_flip_v = false
 			}
@@ -634,47 +660,11 @@ function _update60()
 
 	clover_kick = {
 		{
-			sprite = 150, --body shadow
+			sprite = 151, --hand shadow
 			x = player.x,
-			spr_x = -player.flipped,
+			spr_x = player.flipped*5/4,
 			y = player.y,
-			spr_y = 4,
-			facing = not facing_flip,
-			spr_flip_v = true
-		},
-		{
-			sprite = 150,
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 4,
-			facing = facing_flip,
-			spr_flip_v = true
-		},
-		{
-			sprite = 150,
-			x = player.x,
-			spr_x = -player.flipped,
-			y = player.y,
-			spr_y = -4,
-			facing = not facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 150,
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = -4,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 152, --hand shadow
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 2,
+			spr_y = 1,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -683,16 +673,52 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 3,
+			spr_y = 5,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
 		{
-			sprite = 133, --hand
+			sprite = 150, --body shadow
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 5,
+			facing = not facing_flip,
+			spr_flip_v = true
+		},
+		{
+			sprite = 150,
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 2,
+			spr_y = 5,
+			facing = facing_flip,
+			spr_flip_v = true
+		},
+		{
+			sprite = 150,
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = -3,
+			facing = not facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 150,
+			x = player.x,
+			spr_x = player.flipped,
+			y = player.y,
+			spr_y = -3,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 132, --hand
+			x = player.x,
+			spr_x = player.flipped*5/4,
+			y = player.y,
+			spr_y = 1,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -701,7 +727,7 @@ function _update60()
 			x = player.x,
 			spr_x = 0,
 			y = player.y,
-			spr_y = 0,
+			spr_y = 1,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -710,25 +736,43 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
+			spr_y = 5,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 142, --shoe
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 11,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 147,
+			x = player.x,
+			spr_x = player.flipped,
+			y = player.y,
+			spr_y = 11,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 149, --shoe
+			x = player.x,
+			spr_x = player.flipped*3,
+			y = player.y,
 			spr_y = 3,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
 		{
-			sprite = 139, --shoe
+			sprite = 146,
 			x = player.x,
-			spr_x = player.flipped,
+			spr_x = player.flipped*3,
 			y = player.y,
-			spr_y = 10,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 138, --shoe
-			x = player.x,
-			spr_x = -player.flipped,
-			y = player.y,
-			spr_y = 10,
+			spr_y = -5,
 			facing = facing_flip,
 			spr_flip_v = false
 		}
@@ -736,6 +780,24 @@ function _update60()
 
 	clover_punch = {
 		{
+			sprite = 152, --hand shadow
+			x = player.x,
+			spr_x = player.flipped/2,
+			y = player.y,
+			spr_y = 4,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 133, --hand
+			x = player.x,
+			spr_x = player.flipped/2,
+			y = player.y,
+			spr_y = 4,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
 			sprite = 150, --body shadow
 			x = player.x,
 			spr_x = -player.flipped,
@@ -772,33 +834,6 @@ function _update60()
 			spr_flip_v = false
 		},
 		{
-			sprite = 152, --hand shadow
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 2,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 152,
-			x = player.x,
-			spr_x = -player.flipped,
-			y = player.y,
-			spr_y = 3,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 133, --hand
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 2,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
 			sprite = 130, --body
 			x = player.x,
 			spr_x = 0,
@@ -808,11 +843,20 @@ function _update60()
 			spr_flip_v = false
 		},
 		{
-			sprite = 133, --hand
+			sprite = 136, --hand
 			x = player.x,
-			spr_x = -player.flipped,
+			spr_x = player.flipped*2,
 			y = player.y,
-			spr_y = 3,
+			spr_y = 0,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 137,
+			x = player.x,
+			spr_x = player.flipped*4,
+			y = player.y,
+			spr_y = 0,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -821,7 +865,7 @@ function _update60()
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -830,7 +874,7 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
 			facing = facing_flip,
 			spr_flip_v = false
 		}
@@ -838,6 +882,15 @@ function _update60()
 
 	clover_whiff = {
 		{
+			sprite = 152, --hand shadow
+			x = player.x,
+			spr_x = -player.flipped*3/4,
+			y = player.y,
+			spr_y = 3,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
 			sprite = 150, --body shadow
 			x = player.x,
 			spr_x = -player.flipped,
@@ -870,33 +923,6 @@ function _update60()
 			spr_x = player.flipped,
 			y = player.y,
 			spr_y = -4,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 152, --hand shadow
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 2,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 152,
-			x = player.x,
-			spr_x = -player.flipped,
-			y = player.y,
-			spr_y = 3,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 133, --hand
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 2,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -912,9 +938,18 @@ function _update60()
 		{
 			sprite = 133, --hand
 			x = player.x,
-			spr_x = -player.flipped,
+			spr_x = -player.flipped*3/4,
 			y = player.y,
 			spr_y = 3,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 135, --hand
+			x = player.x,
+			spr_x = player.flipped*5/2,
+			y = player.y,
+			spr_y = 1,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -923,7 +958,7 @@ function _update60()
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -932,7 +967,7 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
 			facing = facing_flip,
 			spr_flip_v = false
 		}
@@ -940,11 +975,29 @@ function _update60()
 
 	clover_stun = {
 		{
+			sprite = 153, --hand shadow
+			x = player.x,
+			spr_x = player.flipped,
+			y = player.y,
+			spr_y = -5,
+			facing = not facing_flip,
+			spr_flip_v = true
+		},
+		{
+			sprite = 153,
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 4,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
 			sprite = 150, --body shadow
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 4,
+			spr_y = 5,
 			facing = not facing_flip,
 			spr_flip_v = true
 		},
@@ -953,7 +1006,7 @@ function _update60()
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 4,
+			spr_y = 5,
 			facing = facing_flip,
 			spr_flip_v = true
 		},
@@ -962,7 +1015,7 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = -4,
+			spr_y = -3,
 			facing = not facing_flip,
 			spr_flip_v = false
 		},
@@ -971,16 +1024,64 @@ function _update60()
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = -4,
+			spr_y = -3,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
 		{
-			sprite = 152, --hand shadow
+			sprite = 134, --hand
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 2,
+			spr_y = -5,
+			facing = not facing_flip,
+			spr_flip_v = true
+		},
+		{
+			sprite = 131, --body
+			x = player.x,
+			spr_x = 0,
+			y = player.y,
+			spr_y = 1,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 134, --hand
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 4,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 144, --shoe
+			x = player.x,
+			spr_x = player.flipped,
+			y = player.y,
+			spr_y = 11,
+			facing = not facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 143, --shoe
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 11,
+			facing = not facing_flip,
+			spr_flip_v = false
+		}
+	}
+
+	clover_kick_whiff = {
+		{
+			sprite = 151, --hand shadow
+			x = player.x,
+			spr_x = player.flipped*5/4,
+			y = player.y,
+			spr_y = 1,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -989,25 +1090,61 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 3,
+			spr_y = 5,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
 		{
-			sprite = 133, --hand
+			sprite = 150, --body shadow
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = 5,
+			facing = not facing_flip,
+			spr_flip_v = true
+		},
+		{
+			sprite = 150,
 			x = player.x,
 			spr_x = player.flipped,
 			y = player.y,
-			spr_y = 2,
+			spr_y = 5,
+			facing = facing_flip,
+			spr_flip_v = true
+		},
+		{
+			sprite = 150,
+			x = player.x,
+			spr_x = -player.flipped,
+			y = player.y,
+			spr_y = -3,
+			facing = not facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 150,
+			x = player.x,
+			spr_x = player.flipped,
+			y = player.y,
+			spr_y = -3,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
 		{
-			sprite = 131, --body
+			sprite = 132, --hand
+			x = player.x,
+			spr_x = player.flipped*5/4,
+			y = player.y,
+			spr_y = 1,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 130, --body
 			x = player.x,
 			spr_x = 0,
 			y = player.y,
-			spr_y = 0,
+			spr_y = 1,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
@@ -1016,165 +1153,137 @@ function _update60()
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 3,
+			spr_y = 5,
 			facing = facing_flip,
 			spr_flip_v = false
 		},
 		{
-			sprite = 139, --shoe
-			x = player.x,
-			spr_x = player.flipped,
-			y = player.y,
-			spr_y = 10,
-			facing = facing_flip,
-			spr_flip_v = false
-		},
-		{
-			sprite = 138, --shoe
+			sprite = 142, --shoe
 			x = player.x,
 			spr_x = -player.flipped,
 			y = player.y,
-			spr_y = 10,
+			spr_y = 11,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 147,
+			x = player.x,
+			spr_x = player.flipped,
+			y = player.y,
+			spr_y = 11,
+			facing = facing_flip,
+			spr_flip_v = false
+		},
+		{
+			sprite = 148, --shoe
+			x = player.x,
+			spr_x = player.flipped*3,
+			y = player.y,
+			spr_y = 3,
 			facing = facing_flip,
 			spr_flip_v = false
 		}
-	}
-	
-	--all beats
+	}--]]
+
+-- [[all beats
 	if flr(note/rate) !=  last_beat then
 		last_beat = flr(note/rate)
+		active = false
+		synco = false
+		anim_frame += 1
+		if anim_frame == 5 then
+			anim_frame = 1
+		end
+		if (flr(note/rate))%2 == 0 then
+			clover_state = clover_idle
+			sfx(2)
+			tick = 0
+		end
 		--beat track
 		note_x -= 1
 		if note_x == -8 then
 			note_x = 0
 		end
 	end
-	--latency adjustment
-	if (flr(note/rate))%2 != 0 then
-		if once_tick then
-			tick = 0
-			once_tick = false
-		end
-	end
-	-- on beats
-	if (flr(note/rate))%2 == 0 then
-		if once_anim then
-			once_tick = true
-		--animation
-			anim_frame += 1
-		clover_state = clover_idle
-			if anim_frame == 5 then
-				anim_frame = 1
-			end
-			once_anim = false
-		end
-		synco = false
-		if once_beat == false then
-			window_start = tick - latency
-			sfx(2)
-			once_beat = true
-		end
-	else
-		once_anim = true
-		once_beat = false
-		once_punch = false
-		once_kick = false
-		punch_flip = facing_flip
-		kick_flip = facing_flip
-	end
-	if tick >= window_start then
+	if (flr(note/rate))%2 == 0 and not btn(🅾️) and not btn(❎) then
 		active = true
-	end
-	if tick <= window_start or tick >= window_start + window_end then
-		active = false
-	end
-	--off beats
-	if (flr(note/rate))%4 == 0 then
-		synco = true
-	end
-	-- up
-	if btn(⬆️) and player.y > 65 then
-		if adjust_hits <= 12 then
-			return
+		if flr(note/rate)%4 == 0 then
+			synco = true
 		end
-		clover_state = clover_walk[anim_frame]
-		player.y -= 1 * player.speed * norm
-	-- down
-	elseif btn(⬇️) and player.y < 104 then
-		if adjust_hits <= 12 then
-			return
-		end
-		clover_state = clover_walk[anim_frame]
-		player.y += 1 * player.speed * norm
 	end
-	-- left
-	if btn(⬅️)  and player.x > 0 then
-		if adjust_hits <= 12 then
-			return
+
+-- [[movement
+	if adjust_hits <= 12 or btn(🅾️) or btn(❎) then
+	else
+		-- up
+		if btn(⬆️) and player.y > 66 then
+
+			clover_state = clover_walk[anim_frame]
+			player.y -= 1 * player.speed * norm
+		-- down
+		elseif btn(⬇️) and player.y < 95 then
+			clover_state = clover_walk[anim_frame]
+			player.y += 1 * player.speed * norm
 		end
-		clover_state = clover_walk[anim_frame]
-		player.flipped = -4
-		facing_flip = true
-		player.x -= 1.7 * player.speed * norm
-	-- right
-	elseif btn(➡️) and player.x < 112 then
-		if adjust_hits <= 12 then
-			return
+		-- left
+		if btn(⬅️)  and player.x > 0 then
+			clover_state = clover_walk[anim_frame]
+			player.flipped = -4
+			facing_flip = true
+			player.x -= 1.7 * player.speed * norm
+		-- right
+		elseif btn(➡️) and player.x < 112 then
+			clover_state = clover_walk[anim_frame]
+			player.flipped = 4
+			facing_flip = false
+			player.x += 1.7 * player.speed * norm
 		end
-		clover_state = clover_walk[anim_frame]
-		player.flipped = 4
-		facing_flip = false
-		player.x += 1.7 * player.speed * norm
-	end
-	--punch
-	if btnp(❎) and active and not once_punch then
+	end--]]
+-- [[punch
+	if btnp(❎) and active then
 		whiff_left = false
 		whiff_right = false
 		beat = 167
 		sfx(1)
-		once_punch = true
-		punch_flip = not punch_flip
+		active = false
 		clover_state = clover_punch
-	elseif btnp(❎) then
+	elseif btn(❎) then
 		whiff_left = true
 		whiff_right = true
 		clover_state = clover_whiff
 		beat = 166
-		once_punch = true
-	end
-	--kick
-	if btnp(🅾️) and active and synco and not once_kick then
+		active = false
+	end--]]
+-- [[kick
+	if btnp(🅾️) and active and synco then
 		whiff_left = false
 		whiff_right = false
 		beat = 167
 		sfx(1)
-		once_kick = true
-		kick_flip = not kick_flip
+		active = false
 		clover_state = clover_kick
-	elseif btnp(🅾️) then
+	elseif btn(🅾️) then
 		whiff_left = true
 		whiff_right = true
 		beat = 166
-		clover_state = clover_punch
-		once_kick = true
-	end
+		clover_state = clover_kick_whiff
+		active = false
+	end--]]
 
-	-- calibration
+-- [[calibration
 	if adjust_hits <= 12 then
 		if btnp(❎) then
 			adjust_hits += 1
 			if adjust_hits == 1 then
-				--adj_latency = 
 			elseif adjust_hits < 12 then
-				--adj_latency = 
 			end
 		end
 		if adjust_hits == 12 then
-			--latency = adj_latency/2
 		end
-	end
+	end--]]
 
-	--tutorial animations
+-- [[tutorial animations
 	if adjust_hits <= 12 then
 		x = 155
 		z = 154
@@ -1187,76 +1296,81 @@ function _update60()
 	else
 		x = 0
 		z = 0
-	end
+	end--]]
 	
-	--red caps
+-- [[red caps
 	right_queue = 0
 	left_queue = 0
 	for k,i in pairs(spawn) do
 		if i.life == 0 then
 			del(spawn, i)
 		end
-		i.state = punching
+		if anim_frame == 2 and adjust_hits > 12 and distance(player.x,player.y,i.x,i.y) < 32 then
+			i.state = "moving" 
+		end
+		if i.state != "stunned" and adjust_hits > 12 and distance(player.x,player.y,i.x,i.y) < 32 then
+			i.state = "punching"
+		end
 		if distance(player.x+8,player.y,i.x,i.y) < 24  and i.x > player.x+8 then
 			reserved_right = true
 			right_queue += 1
-			--TODO: might need a once punch
 			if not whiff_right and not facing_flip and (btnp(🅾️) or btnp(❎)) then
 				i.life -= 1
-				i.state = stunned
+				i.state = "stunned"
 				whiff_right = true
+				if btnp(🅾️) then
+				 i.x += 12
+				end
 			end
-		end
-		if distance(player.x,player.y,i.x+8,i.y) < 24  and i.x+8 < player.x then
+		elseif distance(player.x,player.y,i.x+8,i.y) < 24  and i.x+8 < player.x then
 			reserved_left = true
 			left_queue += 1
 			if not whiff_left and facing_flip and (btnp(🅾️) or btnp(❎)) then
 				i.life -= 1
-				i.state = stunned
+				i.state = "stunned"
 				whiff_left = true
+				if btnp(🅾️) then
+				 i.x -= 12
+				end
 			end
-		end
-		if i.x - 4 > player.x + 8 and (distance(player.x+8,player.y,i.x,i.y) < 24 or not reserved_right) then
+		elseif i.x - 4 > player.x + 8 and (distance(player.x+8,player.y,i.x,i.y) < 24 or not reserved_right) and i.state != "stunned" then
 			i.x -= 1.7 * i.speed
 			i.facing_flip = false
 			i.flipped = -8
-			i.state = moving
+			i.state = "moving"
 			
-			if i.y > player.y - 16 + k * 4 then
+			if i.y > player.y - 24 + k * 4 then
 				i.y -= 1 * i.speed
-				i.state = moving
+				i.state = "moving"
 			end
-			if i.y < player.y - 16 + k * 4 then
+			if i.y < player.y - 24 + k * 4 then
 				i.y += 1 * i.speed
-				i.state = moving
+				i.state = "moving"
 			end
-		end
-		if i.x + 8  < player.x - 4  and (distance(player.x,player.y,i.x+8,i.y) < 24 or not reserved_left) then
+		elseif i.x + 8  < player.x - 4  and (distance(player.x,player.y,i.x+8,i.y) < 24 or not reserved_left) and i.state != "stunned" then
 			i.x += 1.7 * i.speed
 			i.facing_flip = true
 			i.flipped = 8
-			i.state = moving
+			i.state = "moving"
 			
-			if i.y > player.y - 16 + k * 4 then
+			if i.y > player.y - 24 + k * 4 then
 				i.y -= 1 * i.speed
-				i.state = moving
+				i.state = "moving"
 			end
-			if i.y < player.y - 16 + k * 4 then
+			if i.y < player.y - 24 + k * 4 then
 				i.y += 1 * i.speed
-				i.state = moving
+				i.state = "moving"
 			end
-		end
-		if i.x + 8 > player.x - 4 and i.x + 8 < player.x + 8 then
+		elseif i.x + 8 > player.x - 4 and i.x + 8 < player.x + 8 and i.state != "stunned" then
 			i.x -= 1.7 * i.speed
 			i.facing_flip = true
 			i.flipped = 8
-			i.state = moving
-		end
-		if i.x - 4 < player.x + 16 and i.x >= player.x then
+			i.state = "moving"
+		elseif i.x - 4 < player.x + 16 and i.x >= player.x and i.state != "stunned" then
 			i.x += 1.7 * i.speed
 			i.facing_flip = false
 			i.flipped = -8
-			i.state = moving
+			i.state = "moving"
 		end
 	end
 	if right_queue == 0 then
@@ -1271,7 +1385,956 @@ function _update60()
 		add(sprites, tile)
 	end
 	for redcap in all(spawn) do
-		testredcaplocal = {
+		redcap.frame = {}
+-- redcap states
+		redcap_walk = {}
+			add(redcap_walk,{
+				{
+				sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 101,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 102,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 103,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 113,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 114,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 122,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 123,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 84,
+					x = redcap.x,
+					spr_x = -redcap.flipped*9/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+			add(redcap_walk,{
+				{
+					sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 101,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 102,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 103,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 115,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 116,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 124,
+					x = redcap.x,
+					spr_x = redcap.flipped*3/4,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 125,
+					x = redcap.x,
+					spr_x = -redcap.flipped/4,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+			add(redcap_walk,{
+				{
+				sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 101,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 102,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 103,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 113,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 114,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 122,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 123,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 84,
+					x = redcap.x,
+					spr_x = -redcap.flipped*9/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+			add(redcap_walk,{
+				{
+					sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 101,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 102,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 103,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 115,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 116,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 124,
+					x = redcap.x,
+					spr_x = redcap.flipped*3/4,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 125,
+					x = redcap.x,
+					spr_x = -redcap.flipped/4,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+
+		redcap_windup = {}
+			add(redcap_windup,{
+				{
+					sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 95,
+					x = redcap.x,
+					spr_x = redcap.flipped*3/2,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 96,
+					x = redcap.x,
+					spr_x = redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 97,
+					x = redcap.x,
+					spr_x = -redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 107,
+					x = redcap.x,
+					spr_x = redcap.flipped*3/2,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 108,
+					x = redcap.x,
+					spr_x = redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 109,
+					x = redcap.x,
+					spr_x = -redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 119,
+					x = redcap.x,
+					spr_x = redcap.flipped*5/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 120,
+					x = redcap.x,
+					spr_x = -redcap.flipped*3/8,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 124,
+					x = redcap.x,
+					spr_x = redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 125,
+					x = redcap.x,
+					spr_x = -redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+			add(redcap_windup,{
+				{
+					sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 106,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 105,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 119,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 120,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 124,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 125,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 85,
+					x = redcap.x,
+					spr_x = redcap.flipped*5/8,
+					y = redcap.y,
+					spr_y = 6,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 86,
+					x = redcap.x,
+					spr_x = -redcap.flipped*3/8,
+					y = redcap.y,
+					spr_y = 6,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+			add(redcap_windup,{
+				{
+					sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 104,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 105,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 117,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 118,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 122,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 123,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 84,
+					x = redcap.x,
+					spr_x = -redcap.flipped*9/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 85,
+					x = redcap.x,
+					spr_x = redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 5,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 86,
+					x = redcap.x,
+					spr_x = -redcap.flipped/2,
+					y = redcap.y,
+					spr_y = 5,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+			add(redcap_windup,{
+				{
+					sprite = 87,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false,
+				},
+				{
+					sprite = 88,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = -8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 92,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 93,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 94,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 0,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 104,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 105,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 8,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 117,
+					x = redcap.x,
+					spr_x = redcap.flipped,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 118,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 16,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 122,
+					x = redcap.x,
+					spr_x = redcap.flipped*7/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 123,
+					x = redcap.x,
+					spr_x = -redcap.flipped/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 84,
+					x = redcap.x,
+					spr_x = -redcap.flipped*9/8,
+					y = redcap.y,
+					spr_y = 24,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 85,
+					x = redcap.x,
+					spr_x = 0,
+					y = redcap.y,
+					spr_y = 5,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				},
+				{
+					sprite = 86,
+					x = redcap.x,
+					spr_x = -redcap.flipped,
+					y = redcap.y,
+					spr_y = 5,
+					facing = redcap.facing_flip,
+					spr_flip_v = false
+				}
+			})
+
+		redcap_stun = {
 			{
 				sprite = 89,
 				x = redcap.x,
@@ -1297,10 +2360,10 @@ function _update60()
 				y = redcap.y,
 				spr_y = -8,
 				facing = redcap.facing_flip,
-				spr_flip_v = false
+				spr_flip_v = false,
 			},
 			{
-				sprite = 92,
+				sprite = 98,
 				x = redcap.x,
 				spr_x = redcap.flipped,
 				y = redcap.y,
@@ -1309,37 +2372,126 @@ function _update60()
 				spr_flip_v = false
 			},
 			{
-				sprite = 93,
+				sprite = 99,
 				x = redcap.x,
 				spr_x = 0,
 				y = redcap.y,
 				spr_y = 0,
 				facing = redcap.facing_flip,
 				spr_flip_v = false
+			},
+			{
+				sprite = 100,
+				x = redcap.x,
+				spr_x = -redcap.flipped,
+				y = redcap.y,
+				spr_y = 0,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 104,
+				x = redcap.x,
+				spr_x = redcap.flipped,
+				y = redcap.y,
+				spr_y = 8,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 110,
+				x = redcap.x,
+				spr_x = 0,
+				y = redcap.y,
+				spr_y = 8,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 111,
+				x = redcap.x,
+				spr_x = -redcap.flipped,
+				y = redcap.y,
+				spr_y = 8,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 121,
+				x = redcap.x,
+				spr_x = redcap.flipped,
+				y = redcap.y,
+				spr_y = 16,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 118,
+				x = redcap.x,
+				spr_x = 0,
+				y = redcap.y,
+				spr_y = 16,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 112,
+				x = redcap.x,
+				spr_x = -redcap.flipped,
+				y = redcap.y,
+				spr_y = 16,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 126,
+				x = redcap.x,
+				spr_x = redcap.flipped,
+				y = redcap.y,
+				spr_y = 24,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 127,
+				x = redcap.x,
+				spr_x = 0,
+				y = redcap.y,
+				spr_y = 24,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
+			},
+			{
+				sprite = 84,
+				x = redcap.x,
+				spr_x = -redcap.flipped,
+				y = redcap.y,
+				spr_y = 24,
+				facing = redcap.facing_flip,
+				spr_flip_v = false
 			}
 		}
-		if redcap.state == moving then
-			redcap.state = testredcaplocal
+
+		if redcap.state == "moving" then
+			redcap.frame = redcap_walk[anim_frame]
+		elseif redcap.state == "punching" then
+			redcap.frame = redcap_windup[anim_frame]
+		elseif redcap.state == "stunned" then
+			redcap.frame = redcap_stun
 		end
-		if redcap.state == punching then
-			redcap.state = testredcaplocal
-		end
-		if redcap.state == stunned then
-			redcap.state = testredcaplocal
-		end
-		for tile in all(redcap.state) do
+		for tile in all(redcap.frame) do
 			add(sprites, tile)
 		end
-	end
-	-- sort sprites
+	end--]]
+-- [[ sort sprites
 	sorted_sprites = {}
 	for sprite in all(sprites) do
-		for key = 1, 128 do
-			if flr(sprite.y) == key then
+		for key = 0, 128 do
+			if ceil(sprite.y) == key then
 				add(sorted_sprites,sprite)
 			end
 		end
-	end
+	end--]]
 
 end
 
@@ -1349,28 +2501,31 @@ function _draw()
 	for sprite in all(sorted_sprites) do
 		spr(sprite.sprite, sprite.x+sprite.spr_x, sprite.y+sprite.spr_y, 1, 1, sprite.facing, sprite.spr_flip_v)
 	end
-	--[[
-	print(ceil(note/rate)) --current beat 
-	print(window_start)--]] 
+--[[debug
+	print(palette,0,100)
+	-- [[
+	print(bin)
+	-- [[
+	print(ceil(note/rate)) --current beat --]] 
 	
-	--track
-	spr(168,note_x+8,116)
-	spr(168,note_x+16,116)
-	spr(168,note_x+24,116)
-	spr(168,note_x+32,116)
-	spr(168,note_x+40,116)
-	spr(168,note_x+48,116)
-	spr(168,note_x+56,116)
-	spr(168,note_x+64,116)
-	spr(168,note_x+72,116)
-	spr(168,note_x+80,116)
-	spr(168,note_x+88,116)
-	spr(168,note_x+96,116)
-	spr(168,note_x+104,116)
-	spr(168,note_x+112,116)
-	spr(168,note_x+120,116)
-	spr(168,note_x+128,116)
-	spr(beat,0,116)
+-- track
+	spr(169,note_x+8,120)
+	spr(169,note_x+16,120)
+	spr(169,note_x+24,120)
+	spr(169,note_x+32,120)
+	spr(169,note_x+40,120)
+	spr(169,note_x+48,120)
+	spr(169,note_x+56,120)
+	spr(169,note_x+64,120)
+	spr(169,note_x+72,120)
+	spr(169,note_x+80,120)
+	spr(169,note_x+88,120)
+	spr(169,note_x+96,120)
+	spr(169,note_x+104,120)
+	spr(169,note_x+112,120)
+	spr(169,note_x+120,120)
+	spr(169,note_x+128,120)
+	spr(beat,0,120)
 	spr(x,64,100)
 	spr(z,54,100)
 end
@@ -1441,28 +2596,28 @@ ceeeeed40ceeec666ceeeec40ceeec666ceeeec40044446666666440004666666666644000444466
 000000000008aa98a889aa8000899aa88aaaaaa80008aa98a889aa8000899aa88aaaaaa800899998466666654444400000000466666666640004440004444400
 00ffff0000ffff0000ffff0000ffff00000000000000000000000000000000000000000088888000000000000000000000000000000000000000000000000000
 0ffffff00ffffff00fff5ff00ffffff0000000000000000000000000008888000000088833333800000000000444000000000000000000000000440004404800
-ffff33ffffff39ffffff35fffff55fff0003300000000000000000008833338000008b3333333380000044400488400000000444400000000004884048848380
-ffff39ffffff39ffffff39ffffff55ff0033330000333300003330008333333800008b333bb33380000488400483480000000488840000000048384048388380
-ffff39ffffff33ffffff39ffffffffff0033330000333300003330008333333800008b333b333380008438400488838000000488344800000838840004883800
-ffffffffffffffffffffffffffffffff00033000000330000003300083383338000088b333bbbb80083888400433338000000488888380000083884000438000
-0ffffff00ffffff00ffffff00ffffff00000000000000000000000000883338000000888b3333800083333888888880000888833333388800888338888888880
-00ffff0000ffff0000ffff0000ffff00000000000000000000000000000888000000000088888000008888888888000000008888888880000008888888888000
-00000000000448380000000000000000000008880004883800000000000000000000000000000000000000000000000000031000000000000000000000000000
-08444000004838380000000000000000000083380004883800000000000880000000000000000000003333310031003100333100000310000031000000003100
-83888400004888380000000000000000000048380004383800000000008888000088880000888000001113110013131103333310000310000331000000003310
-83838400004888380000000000000000000448380444383844000000088888800888888008888800000031100001311001131110000310003333331003333331
-83844000004444400000000000000000004838384883883844440000088888800888888008888800000311000003110000031000033333101331111001113311
+ffff33ffffff39ffffff35fffff55fff0003300000000000000000008833338000008b33333333800000444004ff400000000444400000000004ff404ff4f380
+ffff39ffffff39ffffff39ffffff55ff0033330000333300003330008333333800008b333bb333800004ff4004f34800000004fff4000000004f3f404f3ff380
+ffff39ffffff33ffffff39ffffffffff0033330000333300003330008333333800008b333b33338000843f4004fff380000004ff34480000083ff40004ff3800
+ffffffffffffffffffffffffffffffff00033000000330000003300083383338000088b333bbbb80083fff4004333380000004fffff380000083ff4000438000
+0ffffff00ffffff00ffffff00ffffff00000000000000000000000000883338000000888b33338000833338fff88880000fff83333338ff00ff8338ffff8fff0
+00ffff0000ffff0000ffff0000ffff00000000000000000000000000000888000000000088888000008888ffffff00000000ff888888f000000f88fffffff000
+0000000000044f380000000000000000000008880004883800000000000000000000000000000000000000000000000000031000000000000000000000000000
+08444000004f3f380000000000000000000083380004883800000000000880000000000000000000003333310031003100333100000310000031000000003100
+83fff400004fff380000000000000000000048380004383800000000008888000088880000888000001113110013131103333310000310000331000000003310
+83f3f400004fff380000000000000000000448380444383844000000088888800888888008888800000031100001311001131110000310003333331003333331
+83f44000004444400000000000000000004838384883883844440000088888800888888008888800000311000003110000031000033333101331111001113311
 83380000000000000000000000000000004888384888883844440000008888000088880000888800003110000031310000031000013331100131000000003110
-08888888888888000000088088888800004888384888883844444000000880000008800000088000033333100311131000011000001311000011000000001100
-00088888888800000000833888880000004444804444448044444000000000000000000000000000011111100110011000000000000110000000000000000000
-00000000000000000004400000000000000000000000000088aaaaaa44333333cccccccc244424442444444424444444cccccccc000000000000000000000000
-00444444004400440044140000044000004400000000440088aaaaaa4433333324242424200020002000000020000000cccccccc000000000000000000000000
-00411111004144410441114000041000044100000000414088a8888a443444432c2c2c2cf000f000f0000000f0000000cccccccc000000000000000000000000
-00004410000414100411111000041000441144400444411488a8888a44344443fcfcfcfc000000000000000000000000cccccccc000000000000000000000000
-00044100000441000004100004441440411111100411111188a8888a44344443ccccccccf8888888f888888888888888cccccccc000000000000000000000000
-004410000044140000041000041111100411000000004110aaa8888a33344443f888f888f0000000f000000000000000cccccccc000000000000000000000000
-044144400441414000041000004111000041000000004100aaa88aaa33344333fcccfccca0000000a000000000000000cccccccc000000000000000000000000
-04111110041004100000000000041000000000000000000088888aaa44444333acccaccc000000000000000000000000cccccccc000000000000000000000000
+088fffffffffff0000000880ffffff00004888384888883844444000000880000008800000088000033333100311131000011000001311000011000000001100
+000fffffffff000000008338ffff0000004444804444448044444000000000000000000000000000011111100110011000000000000110000000000000000000
+00000000000000000004400000000000000000000000000088aaaaaa4433333300000000000000002444444424444444cccccccc000000000000000000000000
+00444444004400440044140000044000004400000000440088aaaaaa443333332424242424f424f42000000020000000cccccccc000000000000000000000000
+00411111004144410441114000041000044100000000414088a8888a443444432020202020002000f0000000f0000000cccccccc000000000000000000000000
+00004410000414100411111000041000441144400444411488a8888a44344443f0f0f0f0f000f0000000000000000000cccccccc000000000000000000000000
+00044100000441000004100004441440411111100411111188a8888a443444430000000000000000f888888888888888cccccccc000000000000000000000000
+004410000044140000041000041111100411000000004110aaa8888a33344443f888f888f888f888f000000000000000cccccccc000000000000000000000000
+044144400441414000041000004111000041000000004100aaa88aaa33344333f000f000f0000000a000000000000000cccccccc000000000000000000000000
+04111110041004100000000000041000000000000000000088888aaa44444333a000a000a00000000000000000000000cccccccc000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1542,7 +2697,7 @@ __map__
 __sfx__
 000100000006000060000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000800002c6200062000600040000300001000010002b0002a0002500024000230001f0001c0001a000180001600014000110000f0000d0000a00008000070000600005000000000000000000000000000000000
-000200001f65000600390000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000200000060000600006000000000000000002465000000000000000000000000000000000600000000000000600000000000000000000000000000000000000000000000000000000000000000000060024600
 000200001f65000600390000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 010210201005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050
 000c000032c4032c4000000000002ec402ec4000000000002bc402bc40000000000026c4026c4028c4028c4000000000002ac402ac4000000000002bc402bc4000000000002ac402ac402bc402bc402dc402dc40
