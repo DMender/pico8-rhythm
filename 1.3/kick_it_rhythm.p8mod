@@ -1,6 +1,9 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
+-- beat em 2 the beat 1.3
+-- Soft Soft
+
 -- variables
 	note = stat(56)
 	active = false
@@ -69,6 +72,8 @@ __lua__
 	display_score = 0
 	one_punch = false
 	last_time = 10
+	pink=14
+	whiff_count = 0
 
 -- functions
 	function distance(x1, y1, x2, y2)
@@ -82,7 +87,7 @@ function _init()
 	music()
 	pal({[0]=0,5,8,7,128,132,4,143,129,1,140,6,131,3,139,15},1)
 	poke(0x5f5f,0x3f)
-	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,14,14,14,12},2)
+	pal({[0]=136,133,133,12,12,136,134,134,pink,pink,pink,pink,pink,pink,pink,12},2)
 	memset(0x5f72,0b11100000,1)
 	memset(0x5f77,0b10000000,1)
 	memset(0x5f7f,0b00001111,1)
@@ -195,13 +200,13 @@ function _update60()
 
 	chunk = flr(player.y/8)
 	if chunk >= 11 then
-	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,14,133,133,12},2)
+	pal({[0]=136,133,133,12,12,136,134,134,pink,pink,pink,pink,pink,133,133,12},2)
 	elseif chunk >= 10 then
-	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,14,133,133,133,12},2)
+	pal({[0]=136,133,133,12,12,136,134,134,pink,pink,pink,pink,133,133,133,12},2)
 	elseif chunk >= 9 then
-	pal({[0]=136,133,133,12,12,136,134,134,14,14,14,133,133,133,14,12},2)
+	pal({[0]=136,133,133,12,12,136,134,134,pink,pink,pink,133,133,133,pink,12},2)
 	elseif chunk >= 8 then
-	pal({[0]=136,133,133,12,12,136,134,134,14,14,133,133,133,14,14,12},2)
+	pal({[0]=136,133,133,12,12,136,134,134,pink,pink,133,133,133,pink,pink,12},2)
 	end
 	palette = "0x5f7" .. sub(tostr(flr((player.y+16)/8)*255,true),4,4)
 	bin = ""
@@ -1208,7 +1213,12 @@ function _update60()
 		if (flr(note/rate))%2 == 0 then
 			clover_state = clover_idle
 			one_punch = false
+			if whiff_count >= 0 then
+				clover_state = clover_stun
+				whiff_count -= 1
+			end
 			sfx(2)
+			pink=14
 		end
 		--beat track
 		note_x -= 1
@@ -1226,32 +1236,28 @@ function _update60()
 -- [[movement
 	if adjust_hits <= 12 or btn(🅾️) or btn(❎) and clover_state != clover_stunned then
 	else
+		clover_state = clover_walk[anim_frame]
 		-- up
 		if btn(⬆️) and player.y > 66 and clover_state != clover_stunned then
-
-			clover_state = clover_walk[anim_frame]
 			player.y -= 1 * player.speed * norm
 		-- down
 		elseif btn(⬇️) and player.y < 95 and clover_state != clover_stunned then
-			clover_state = clover_walk[anim_frame]
 			player.y += 1 * player.speed * norm
 		end
 		-- left
 		if btn(⬅️)  and player.x > 0 and clover_state != clover_stunned then
-			clover_state = clover_walk[anim_frame]
 			player.flipped = -4
 			facing_flip = true
 			player.x -= 1.7 * player.speed * norm
 		-- right
 		elseif btn(➡️) and player.x < 112 and clover_state != clover_stunned then
-			clover_state = clover_walk[anim_frame]
 			player.flipped = 4
 			facing_flip = false
 			player.x += 1.7 * player.speed * norm
 		end
 	end--]]
 -- [[punch
-	if btnp(❎) and active and clover_state != clover_stunned then
+	if btnp(❎) and active and clover_state != clover_stunned and whiff_count < 0 then
 		adjust_hits += 1
 		whiff_left = false
 		whiff_right = false
@@ -1259,17 +1265,19 @@ function _update60()
 		sfx(1)
 		active = false
 		clover_state = clover_punch
+		pink=8
 	elseif btnp(❎) and clover_state != clover_stunned then
 		adjust_hits += 1
 		whiff_left = true
 		whiff_right = true
 		clover_state = clover_whiff
+		whiff_count = 2
 		beat = 166
-			sfx(3)
+		sfx(3)
 		active = false
 	end--]]
 -- [[kick
-	if btnp(🅾️) and active and synco and clover_state != clover_stunned then
+	if btnp(🅾️) and active and synco and clover_state != clover_stunned and whiff_count < 0 then
 		adjust_hits += 1
 		whiff_left = false
 		whiff_right = false
@@ -1277,13 +1285,15 @@ function _update60()
 		sfx(1)
 		active = false
 		clover_state = clover_kick
+		pink=12
 	elseif btnp(🅾️) and clover_state != clover_stunned then
 		adjust_hits += 1
 		whiff_left = true
 		whiff_right = true
 		beat = 166
-			sfx(3)
+		sfx(3)
 		clover_state = clover_kick_whiff
+		whiff_count = 2
 		active = false
 	end--]]
 
@@ -1315,7 +1325,7 @@ function _update60()
 		end
 		if i.state != "stunned" and adjust_hits > 12 and distance(player.x,player.y,i.x,i.y) < 32 then
 			i.state = "punching"
-			if anim_frame == 1 and not one_punch then
+			if anim_frame == 3 and not one_punch then
 				clover_state = clover_stun
 				lives -= 1
 				sfx(0)
@@ -2532,9 +2542,8 @@ function _draw()
 	spr(168,note_x+56,120)
 	spr(168,note_x+64,120)
 	spr(168,note_x+72,120)
-	spr(168,note_x+80,120)
-	spr(168,note_x+88,120,-(note_x/8),1)
-	spr(156,92,120-flr(anim_frame%2),4*(lives/30),1)
+	spr(168,note_x+80,120,-(note_x/8),1)
+	spr(156,88,120-flr(anim_frame%2),4*(lives/30),1)
 	spr(beat,0,120)
 	spr(x,64,100)
 	spr(z,54,100)
@@ -2542,8 +2551,7 @@ function _draw()
 		if display_score < score then display_score += 1 end
 		for i=1, display_score do
 			x = i%21
-			spr(87,x*7-6,(flr(i/21)*7)+x/3)
-			spr(88,x*7+2,(flr(i/21)*7)+x/3)
+			spr(87,x*7-6,(flr(i/21)*7)+x/3,2,1)
 		end
 		for sprite in all(clover_state) do
 			spr(sprite.sprite, sprite.x+sprite.spr_x, sprite.y+sprite.spr_y, 1, 1, sprite.facing, sprite.spr_flip_v)
